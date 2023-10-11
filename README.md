@@ -20,7 +20,7 @@ We leverage _matrix sketching_ to develop a fast and efficient LMM method called
 <!-- [![Jupyter][Jupyter.com]][Jupyter-url] -->
 
 ## Getting Started
-
+<!--
 ### Prerequisites
 
 1. Create the environment from the `comical_env.yml` file:
@@ -58,53 +58,24 @@ conda env list
    * [Set up remote development environment using VSCode](https://code.visualstudio.com/docs/remote/ssh)
 
 <a name="running_comical"></a>
+-->
 
-### Running Comical
+### Running MaSK-LMM
 
-<!-- [![Notebook Template][notebook]](#running_comical) -->
-
-1. Request resources from computing cluster:
 
 ```
 
-jbsub -cores 2+1 -q x86_1h -mem 800g -interactive bash
+python run-mask.py ${data} ${pruned} ${sample_sketch_size} ${marker_sketch_size} $block_size
 
 ```
 
-2. Activate the new environment:
+```
+
+python run-mask.py sample-data/bn sample-data/bn 0.5 0.5 5000
 
 ```
 
-conda activate comical-env
-
-```
-
-3. Move to directory with source code and data:
-
-```
-
-cd /dccstor/ukb-pgx/comical/comical
-
-```
-
-4. Run Comical:
-
-```
-
-nohup python wrapper.py --fname_out_root new_run_check_code --epochs 4 --top_n_perc 0.5 &
-
-```
-
-<!-- * Note: must be run from same directory containing `data/` folder with the following dependencies:
-
-  * snp-encodings-from-vcf.csv
-
-  * T1_struct_brainMRI_IDPs.csv
-
-  * T1mri.csv
-
-  * pairs.csv -->
-
+<!--
 ### Help
 
 ```
@@ -112,7 +83,7 @@ nohup python wrapper.py --fname_out_root new_run_check_code --epochs 4 --top_n_p
 python wrapper.py --help
 
 ```
-
+-->
 ## Authors
 
 Contributors and contact info:
