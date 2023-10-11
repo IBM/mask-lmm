@@ -13,11 +13,8 @@ We leverage _matrix sketching_ to develop a fast and efficient LMM method called
 <!-- This section should list any major frameworks/libraries used to bootstrap your project. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples. -->
 
 [![Anaconda][Anaconda.com]][Anaconda-url]
-
 [![Python][Python.com]][Python-url]
-
 [![VSCode][VSCode.com]][VSCode-url]
-
 [![Github][Github.com]][Github-url]
 
 <!-- [![Jupyter][Jupyter.com]][Jupyter-url] -->
