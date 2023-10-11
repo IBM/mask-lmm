@@ -170,7 +170,7 @@ This project is licensed under the [NAME HERE] License - see the LICENSE.md file
 
 [linkedin-url]: https://linkedin.com/in/othneildrew
 
-[masklmm]: images/masklmm.jpg
+[masklmm]: images/masklmm_overview.png
 
 [notebook]: images/screenshot.png
 
