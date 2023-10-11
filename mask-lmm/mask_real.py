@@ -1,8 +1,3 @@
-######################################################
-## Myson Burch, Purdue University, West Lafayette, IN
-## mcburch@purdue.edu
-######################################################
-
 # Packages
 
 import sys, time
