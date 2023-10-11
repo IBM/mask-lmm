@@ -17,7 +17,7 @@ echo "dataset used for GRM sketch: ${pruned}"
 echo "p-value threshold: ${pvalthresh}"
 echo " "
 
-python3 mask_real.py ${data} ${pruned} ${sample_sketch_size} ${marker_sketch_size} $block_size
+python3 run-mask.py ${data} ${pruned} ${sample_sketch_size} ${marker_sketch_size} $block_size
 
 sort -g -k 5 masklmm_output > temp
 mv temp masklmm_output
