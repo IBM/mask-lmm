@@ -65,7 +65,7 @@ conda env list
 
 ```
 
-python run-mask.py ${data} ${pruned} ${sample_sketch_size} ${marker_sketch_size} $block_size
+python run-mask.py $data $pruned $sample_sketch_size $marker_sketch_size $block_size
 
 ```
 
