@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-np.seterr(invalid='ignore')
+np.seterr(invalid='ignore') 
 
 from os import environ
 N_THREADS = 8
@@ -20,10 +20,12 @@ def get_data(bed_fn, pruned_bed_fn, pheno_fn, cov_fn):
 
     :param bed_fn: Filename of of PLINK Bed-formatted files (ex: "/path/to/files/toy.bed")
 
+    :param pruned_bed_fn: Filename of of PLINK Bed-formatted files (ex: "/path/to/files/toy.bed")
+
     :param pheno_fn: Filename of of PLINK phenotype-formatted files (ex: "/path/to/files/toy.phen")
 
-    :param cov_fn: Filename of of PLINK covariate-formatted files (ex: "/path/to/files/toy.cov")
-
+    :param cov_fn: Set to 'None' as top 2 principal components computed after sketching
+    
     """
 
     ignore_in = None
@@ -69,7 +71,7 @@ def get_K(Z):
     
     return np.float32((1/m)*(Z @ Z.T))
 
-def sample_sketch(M, sk_sz, type="clkwdf"):
+def sample_sketch(M, sk_sz):
     """
     Function performing sketching on the samples for the genotype and phenotype matrices
 
@@ -77,34 +79,21 @@ def sample_sketch(M, sk_sz, type="clkwdf"):
 
     :param sk_sz: Sketch dimension to be used on the samples
 
-    :param type: Flag for different types of sketching. Currently, support count sketching and gaussian projections
-
     """
 
-    if type != "clkwdf":
-        # sample sketching for Z, y, X
-        n, _ = M.shape
-        sketch_rows = int(sk_sz*n)
-        if sk_sz < 1.0:
-            S = np.random.randn(sketch_rows, n) / np.sqrt(sketch_rows)
-            M_sketched = S @ M
-        else:
-            return M
-        
-        return M_sketched
-    
-    else:
-        # sample sketching for Z, y, X
-        n, _ = M.shape
-        sketch_rows = int(sk_sz*n)
-        if sk_sz < 1.0:
-            M_sketched = np.float32(linalg.clarkson_woodruff_transform(M, sketch_rows, seed = 13))
-        else:
-            return M
-        
-        return M_sketched
+    # sample sketching for Z, y, X
+    n, _ = M.shape
 
-def marker_sketch(M, sk_sz, type="clkwdf"):
+    sketch_rows = int(sk_sz*n)
+
+    if sk_sz < 1.0:
+        M_sketched = np.float32(linalg.clarkson_woodruff_transform(M, sketch_rows, seed = 13))
+    else:
+        return M
+    
+    return M_sketched
+
+def marker_sketch(M, sk_sz):
     """
     Function performing sketching on the markers for the genotype and phenotype matrices
 
@@ -112,38 +101,25 @@ def marker_sketch(M, sk_sz, type="clkwdf"):
 
     :param sk_sz: Sketch dimension to be used on the markers
 
-    :param type: Flag for different types of sketching. Currently, support count sketching and gaussian projections
-
     """
 
-    if type != "clkwdf":
-        # sample sketching for Z, y, X
-        _, m = M.shape
-        sketch_cols = int(sk_sz*m)
-        if sk_sz < 1.0:
-            S = np.random.randn(m, sketch_cols) / np.sqrt(sketch_cols)
-            M_sketched = M @ S
-        else:
-            return M  
-              
-        return M_sketched
-    
-    else:
-        # marker sketching for GRM
-        _, m = M.shape
-        sketch_cols = int(sk_sz*m)
-        if sk_sz < 1.0:
-            M_sketched = np.float32(linalg.clarkson_woodruff_transform(M.T, sketch_cols, seed = 13).T)
-        else:
-            return M
-        
-        return M_sketched
+    # marker sketching for GRM
+    _, m = M.shape
 
-def get_H_tau(tau_0, n, K):
+    sketch_cols = int(sk_sz*m)
+
+    if sk_sz < 1.0:
+        M_sketched = np.float32(linalg.clarkson_woodruff_transform(M.T, sketch_cols, seed = 13).T)
+    else:
+        return M
+    
+    return M_sketched
+
+def get_H_tau(tau0, n, K):
     """
     Function computing H_tau (see paper for details)
 
-    :param tau_0: Current value for tau estimate
+    :param tau0: Current value for tau estimate
 
     :param n: Number of samples
 
@@ -151,7 +127,7 @@ def get_H_tau(tau_0, n, K):
 
     """
 
-    return np.float32(K + (tau_0*np.identity(n)))
+    return np.float32(K + (tau0*np.identity(n)))
 
 def get_U_term(X):
     """
@@ -199,29 +175,6 @@ def estimate_variance_comp(y, M_inv, n, c):
 
     return num/den
 
-def get_p_inverse(P):
-    """
-    Function computing inverse of projection matrix
-
-    :param P: Projection matrix
-
-    """
-
-    # Get the indices for the off-diagonal elements
-    row_indices, col_indices = np.indices(P.shape)
-
-    # Set all off-diagonal elements to 0
-    P[row_indices != col_indices] = 0
-
-    #P_inv = np.float32(np.linalg.pinv(P, hermitian = True))
-    P_inv = np.copy(P)
-
-    diagonal_elements = np.diag_indices_from(P_inv)
-
-    P_inv[diagonal_elements] = 1 / P_inv[diagonal_elements]
-
-    return P_inv
-
 def get_lle(x, n, c, pheno, K, U_term):
     """
     Function computing log-likelihood function at estimated values (see paper for details)
@@ -244,7 +197,15 @@ def get_lle(x, n, c, pheno, K, U_term):
     
     P = get_projected_matrix(U_term, H_tau)
 
-    P_inv = get_p_inverse(P)
+    row_indices, col_indices = np.indices(P.shape)
+
+    P[row_indices != col_indices] = 0
+
+    P_inv = np.copy(P)
+
+    diagonal_elements = np.diag_indices_from(P_inv)
+
+    P_inv[diagonal_elements] = 1 / P_inv[diagonal_elements]
     
     sigma_g = abs(estimate_variance_comp(pheno, P_inv, n, c))
 
@@ -262,7 +223,6 @@ def get_lle(x, n, c, pheno, K, U_term):
             print("ERROR: FloatingPointError occurred within lle computation")
             sys.exit(0)
 
-    # comp2 = -1*fact*np.log(sigma_g)
     sign_logdet, logdet = np.linalg.slogdet(P)
 
     # subtract logdet(P) or add logdet(P^-1) to compute lle correctly
@@ -300,24 +260,29 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
 
     """
     
-    # normalize phenotype
     Y = np.float32((Y - np.mean(Y)).flatten())
+
     _, c = X.shape
 
-    # compute V
     V = sigma_g*H_tau
 
-    # compute inverse of V
-    # V_inv = np.float32(np.linalg.pinv(sigma_g*H_tau, hermitian = True))
-    V_inv = get_p_inverse(V)
+    row_indices, col_indices = np.indices(V.shape)
+
+    V[row_indices != col_indices] = 0
+
+    Vinv = np.copy(V)
+
+    diagonal_elements = np.diag_indices_from(Vinv)
+
+    Vinv[diagonal_elements] = 1 / Vinv[diagonal_elements]
     
-    # vectorized computation in blocks (need to place data in sample-sketched space to compute test statistic)
     num_blocks = math.floor(snp_on_disk.sid_count / block_size)
     if snp_on_disk.sid_count % block_size != 0:
         num_blocks += 1
         
-    num_sample_blocks = math.floor(snp_on_disk.iid_count / block_size)
-    if snp_on_disk.iid_count % block_size != 0:
+    sample_block_size = snp_on_disk.iid_count
+    num_sample_blocks = math.floor(snp_on_disk.iid_count / sample_block_size)
+    if snp_on_disk.iid_count % sample_block_size != 0:
         num_sample_blocks += 1
 
     i = 0
@@ -325,31 +290,17 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
     ending_range = starting_range + block_size - 1
     # generate p-values for each block of markers
     while i < num_blocks:
-        j = 0
-        start_idx_samples = 0
-        end_idx_samples = start_idx_samples + block_size - 1
-        Z = np.empty(shape=[0, ending_range - starting_range + 1])
-        while j < num_sample_blocks:
-            subset_on_disk = snp_on_disk[start_idx_samples:end_idx_samples+1:1 ,starting_range:ending_range+1:1]
-            block = subset_on_disk.read(dtype = np.float32).standardize(num_threads = N_THREADS).val
-            M_sketched = sample_sketch(block, sample_sketch_size)
-            Z = np.concatenate((Z,M_sketched),axis=0)
-            j += 1
-            if j+1 != num_sample_blocks:
-                start_idx_samples = end_idx_samples + 1
-                end_idx_samples = start_idx_samples + block_size - 1
-            else:
-                start_idx_samples = end_idx_samples + 1
-                end_idx_samples = snp_on_disk.iid_count - 1
+        subset_on_disk = snp_on_disk[:,starting_range:ending_range+1:1]
+        block = subset_on_disk.read(dtype = np.float32).standardize(num_threads = N_THREADS).val
+        Z = sample_sketch(block, sample_sketch_size)
         i += 1
         del block
-        del M_sketched
-            
-        n, m = Z.shape
-        num_vec = np.square(Z.T @ V_inv @ Y, dtype="float32")
-        den_vec = np.float32(np.einsum('...i,...i->...', Z.T @ V_inv, Z.T))
 
-        # compute chi-square statistics 
+        n, m = Z.shape
+        num_vec = np.square(Z.T @ Vinv @ Y, dtype="float32")
+        den_vec = np.float32(np.einsum('...i,...i->...', Z.T @ Vinv, Z.T))
+
+        # compute chi-square statistics
         chi2stats = np.absolute( np.array(num_vec / den_vec).reshape((m, 1)) )
         chi2stats = np.nan_to_num(chi2stats)
         adjchisq = 2 * np.array(chi2stats)
@@ -386,60 +337,36 @@ def generateSketch(block_num, block_size, marker_sketch_size, sample_sketch_size
     :param snp_on_disk: SNP data
 
     """
-    
+
     # number of blocks for the markers given the block size
     num_marker_blocks = math.floor(snp_on_disk.sid_count / block_size)
     if snp_on_disk.sid_count % block_size != 0:
         num_marker_blocks += 1
-    
-    # number of blocks for the samples given the block size
-    num_sample_blocks = math.floor(snp_on_disk.iid_count / block_size)
-    if snp_on_disk.iid_count % block_size != 0:
-        num_sample_blocks += 1
-        
+
     # start / end range for marker block (using block id)
     start_idx_markers = (block_num) * block_size
     end_idx_markers = start_idx_markers + block_size - 1
     if block_num+1 == num_marker_blocks:
         end_idx_markers = snp_on_disk.sid_count - 1
 
-    j = 0
-    # start / end range for sample blocks
-    start_idx_samples = 0
-    end_idx_samples = start_idx_samples + block_size - 1
-    sketchedBlock = np.empty(shape=[0, end_idx_markers - start_idx_markers + 1])
-    # sketch samples in each block and concatenate
-    while j < num_sample_blocks:
-        subset_on_disk = snp_on_disk[start_idx_samples:end_idx_samples+1:1 ,start_idx_markers:end_idx_markers+1:1]
-        block = subset_on_disk.read(dtype = np.float32).standardize(num_threads = N_THREADS).val
-        M_sketched = sample_sketch(block, sample_sketch_size)
-        sketchedBlock = np.concatenate((sketchedBlock,M_sketched),axis=0)
-        j += 1
-        if j+1 != num_sample_blocks:
-            start_idx_samples = end_idx_samples + 1
-            end_idx_samples = start_idx_samples + block_size - 1
-        else:
-            start_idx_samples = end_idx_samples + 1
-            end_idx_samples = snp_on_disk.iid_count - 1
-    
-    # sketch markers in concatenated block
-    M_sketched = marker_sketch(sketchedBlock, marker_sketch_size)
+    subset_on_disk = snp_on_disk[: ,start_idx_markers:end_idx_markers+1:1]
+    block = subset_on_disk.read(dtype = np.float32).standardize(num_threads = N_THREADS).val
+    M_sketched = sample_sketch(block, sample_sketch_size)
+    M_sketched = marker_sketch(M_sketched, marker_sketch_size)
     
     start_index = (block_num) * (block_size * marker_sketch_size)
     end_index = start_index + (block_size * marker_sketch_size)
     if block_num+1 == num_marker_blocks:
         end_index = snp_on_disk.sid_count * marker_sketch_size
-    
+
     # place sketched block in appropriate place of array
-    normZ_s1_s2[:, int(start_index):int(end_index)] = M_sketched 
-    
+    normZ_s1_s2[:, int(start_index):int(end_index)] = M_sketched
+
 def MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, num_covars, sample_sketch_size, marker_sketch_size, snp_ids_and_chrom, maxiters, block_size):
     """
     Function performing matrix sketching-based linear mixed modeling for association studies.
 
-    :param snp_on_disk: SNP data
-
-    :param prune_on_disk: Pruned SNP data to be used in GRM approximation (can be original data)
+    :param normZ_s1_s2: Normalized genotype matrix
 
     :param pheno: Normalized phenotype vector / matrix
 
@@ -455,39 +382,33 @@ def MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, num_covars, sample_sketch_si
 
     :param maxiters: Maximum number of iterations to be used in the Newton-Raphson estimation
 
-    :param block_size: Size of the block
-
     """
     
-    # identify number of column blocks using user-defined block size 
     num_marker_blocks = math.floor(prune_on_disk.sid_count / block_size)
     if prune_on_disk.sid_count % block_size != 0:
         num_marker_blocks += 1
 
-    # need to define empty sketch as global so that all threads / processes have access
     global normZ_s1_s2 
     normZ_s1_s2 = np.empty(shape=[int(sample_sketch_size*prune_on_disk.iid_count), int(marker_sketch_size*prune_on_disk.sid_count)], dtype = np.float32)
-    num_samples, _ = normZ_s1_s2.shape
+    num_samples, num_markers = normZ_s1_s2.shape
     
-    # list of block ids
     blocklist = list(range(num_marker_blocks))
     
-    # generate sketched input in blocks
     for block in blocklist:
         generateSketch(block, block_size, marker_sketch_size, sample_sketch_size, prune_on_disk)
-
-    # sketch phenotype and covariates              
+                   
     pheno = sample_sketch(pheno, sample_sketch_size)
+
     cov = sample_sketch(cov, sample_sketch_size)
     
-    # compute GRM term ("constants")
+    # Compute GRM and projection terms ("constants")
     K = get_K(normZ_s1_s2)
+
     del normZ_s1_s2
-    
-    # compute projection term ("constants")
+
     U_term = get_U_term(cov)
         
-    # scipy newton raphson (using secant to auto-compute the derivate)
+    # scipy newton raphson (using secant to auto-compute the derivate solved issue of divergence)
     root, newton_output = optimize.newton(get_lle, 1.0, args=( num_samples,
                                                                num_covars,
                                                                pheno,
@@ -495,7 +416,8 @@ def MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, num_covars, sample_sketch_si
                                                                U_term, ), rtol=1e-2, full_output = True, 
                                                                maxiter=maxiters, disp = False)
     
-    # test for convergence and stability of the root (as to not waste time computing test statistic)
+    
+    # test for convergence and stability of the root (this way we don't spend hours computing test statistic)
     print(newton_output)
     print(' ')
     if newton_output.converged == True:
@@ -504,20 +426,34 @@ def MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, num_covars, sample_sketch_si
         if abs(newton_output.root) > 5000:
             print("METHOD DID NOT CONVERGE; aborting...")
             return newton_output
+            #sys.exit(0)
         else:
             # if root hasn't diverged too much then attempt at solution
             pass
     
-    # generate terms for test statistics (additional computations after converging on sigma_g)
+    # generate test statistics
     H_tau = get_H_tau(abs(root), num_samples, K)
+
     del K
+
     P = get_projected_matrix(U_term, H_tau)
-    P_inv = get_p_inverse(P)
+
+    row_indices, col_indices = np.indices(P.shape)
+
+    P[row_indices != col_indices] = 0
+
+    P_inv = np.copy(P)
+
+    diagonal_elements = np.diag_indices_from(P_inv)
+
+    P_inv[diagonal_elements] = 1 / P_inv[diagonal_elements]
+        
     del P 
+
     sigma_g = estimate_variance_comp(pheno, P_inv, num_samples, num_covars)
+
     del P_inv 
 
-    # compute p-values 
     get_pvals(snp_on_disk, pheno, cov, H_tau, abs(root)*sigma_g, sigma_g, block_size, sample_sketch_size, snp_ids_and_chrom)
         
     return newton_output
@@ -544,14 +480,11 @@ def run(bed_fn, pruned_bed_fn, pheno_fn, cov_fn = None, sample_sketch_size = 0.5
 
     """
 
-    # read in data
     snp_on_disk, prune_on_disk, pheno, cov, snp_ids_and_chrom, num_samples, num_snps, num_covars = get_data(bed_fn, pruned_bed_fn, pheno_fn, cov_fn)
 
-    # run MaSkLMM
     newton = MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, 
                      num_covars, sample_sketch_size, marker_sketch_size, snp_ids_and_chrom, maxiters, block_size)
 
-    # check for convergence 
     if newton.converged == True:
         pass
     else:
