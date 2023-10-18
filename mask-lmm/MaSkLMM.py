@@ -8,11 +8,15 @@ environ['OMP_NUM_THREADS'] = str(N_THREADS)
 environ['OPENBLAS_NUM_THREADS'] = str(N_THREADS)
 environ['MKL_NUM_THREADS'] = str(N_THREADS)
 
-import sys, math
+import sys, math, subprocess
 from scipy import optimize, linalg
 import scipy.stats as stats
 from pysnptools.snpreader import Bed, Pheno
 from pysnptools.util import intersect_apply
+
+# ignore float32 downcast warning
+import warnings
+warnings.filterwarnings("ignore")
 
 def get_data(bed_fn, pruned_bed_fn, pheno_fn, cov_fn):
     """
@@ -215,8 +219,8 @@ def get_lle(x, n, c, pheno, K, U_term):
     
     with np.errstate(divide='raise'):
         try:
-            print("current value of sigma_g:", sigma_g)
-            print(" ")
+            # print("current value of sigma_g:", sigma_g)
+            # print(" ")
             comp2 = -1*fact*np.log(sigma_g)
         except FloatingPointError:
             #print("current value of sigma_g:", sigma_g)
@@ -259,6 +263,9 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
     :param snp_ids_and_chrom: Array of labels for rsIDs and corresponding chromosomes
 
     """
+
+    with open('masklmm-output', "w") as file:
+        file.write("SNP\tChr\tChrPos\tChiSq\tPValue\n")
     
     Y = np.float32((Y - np.mean(Y)).flatten())
 
@@ -310,7 +317,7 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
         snp_ids_and_chrom_block = snp_ids_and_chrom.iloc[starting_range:ending_range + 1,:][['SNP','Chr','ChrPos2']]
         snp_ids_and_chrom_block['Chisq'] = np.array(adjchisq).reshape(adjchisq.shape[0], 1)
         snp_ids_and_chrom_block['PValue'] = np.array(adjpvals).reshape(adjpvals.shape[0], 1)
-        snp_ids_and_chrom_block.to_csv('masklmm_output', mode='a', sep = '\t', index=False, header=False)
+        snp_ids_and_chrom_block.to_csv('masklmm-output', mode='a', sep = '\t', index=False, header=False)
         
         if i+1 != num_blocks:
             starting_range = ending_range + 1
@@ -418,6 +425,7 @@ def MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, num_covars, sample_sketch_si
     
     
     # test for convergence and stability of the root (this way we don't spend hours computing test statistic)
+    print(' ')
     print(newton_output)
     print(' ')
     if newton_output.converged == True:
