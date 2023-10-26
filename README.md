@@ -92,7 +92,6 @@ Contributors and contact info:
 
 * Aritra Bose (a dot bose at ibm dot com)
 
-* Laxmi Parida (parida at us dot ibm dot com)
 
 ## Version History
 
