@@ -466,7 +466,7 @@ def MaSkLMM(snp_on_disk, prune_on_disk, pheno, cov, num_covars, sample_sketch_si
         
     return newton_output
 
-def run(bed_fn, pruned_bed_fn, pheno_fn, cov_fn = None, sample_sketch_size = 0.5, marker_sketch_size = 0.5, maxiters = 1, block_size = 10000):
+def compute(bed_fn, pruned_bed_fn, pheno_fn, cov_fn = None, sample_sketch_size = 0.5, marker_sketch_size = 0.5, maxiters = 1, block_size = 10000):
     """
     Function performing matrix sketching-based linear mixed modeling for association studies.
 
