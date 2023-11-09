@@ -24,7 +24,7 @@ import MaSkLMM as MaSkLMM
 # Running MaSkLMM
 
 start = time.time()
-newton = MaSkLMM.run(bed_fn, pruned_bed_fn, pheno_fn, cov_fn, sample_sketch_size = sample_sketch_size, marker_sketch_size = marker_sketch_size, maxiters = maxiters, block_size = block_size)
+newton = MaSkLMM.compute(bed_fn, pruned_bed_fn, pheno_fn, cov_fn, sample_sketch_size = sample_sketch_size, marker_sketch_size = marker_sketch_size, maxiters = maxiters, block_size = block_size)
 end = time.time()
 mask_timing = end - start
 print("execution time (s):", mask_timing)
