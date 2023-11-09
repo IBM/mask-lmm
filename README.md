@@ -60,20 +60,47 @@ conda env list
 <a name="running_comical"></a>
 -->
 
+### Installing MaSK-LMM
+
+```
+pip install masklmm
+```
+
 ### Running MaSK-LMM
 
 
+```python
+# Data
+
+data_path = "../sample-data/bn"
+bed_fn = data_path+".bed"
+pheno_fn = data_path+".phen_w_header"
+cov_fn = data_path+".cov_w_header"
+pruned_bed_fn = "../sample-data/bn.bed"
+
+# Parameters
+
+maxiters = 10
+sample_sketch_size = 0.5
+marker_sketch_size = 0.5
+block_size = 10000
+
+# MaSkLMM pacakge
+
+from masklmm import MaSkLMM
+
+# Running MaSkLMM
+
+newton = MaSkLMM.compute(bed_fn,
+                        pruned_bed_fn,
+                        pheno_fn,
+                        cov_fn,
+                        sample_sketch_size = sample_sketch_size,
+                        marker_sketch_size = marker_sketch_size,
+                        maxiters = maxiters,
+                        block_size = block_size)
 ```
 
-python run-mask.py $data $pruned $sample_sketch_size $marker_sketch_size $block_size
-
-```
-
-```
-
-python run-mask.py sample-data/bn sample-data/bn 0.5 0.5 5000
-
-```
 
 <!--
 ### Help
@@ -101,7 +128,7 @@ Contributors and contact info:
 
     * See [commit change]() or See [release history]() -->
 
-* 0.1
+* 0.1.0
 
     * Initial Release
 
