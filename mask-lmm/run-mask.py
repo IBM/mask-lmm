@@ -4,22 +4,22 @@ import sys, time
 
 # Inputs
 
-data_path = str(sys.argv[1])
+data_path = "../sample-data/bn"
 bed_fn = data_path+".bed"
 pheno_fn = data_path+".phen_w_header"
 cov_fn = data_path+".cov_w_header"
-pruned_bed_fn = str(sys.argv[2])+".bed"
+pruned_bed_fn = "../sample-data/bn.bed"
 
 # Parameters
 
 maxiters = 10
-sample_sketch_size = float(sys.argv[3])
-marker_sketch_size = float(sys.argv[4])
-block_size = int(sys.argv[5])
+sample_sketch_size = 0.5
+marker_sketch_size = 0.5
+block_size = 10000
 
 # MaSkLMM pacakge
 
-import MaSkLMM as MaSkLMM
+from masklmm import MaSkLMM
 
 # Running MaSkLMM
 
