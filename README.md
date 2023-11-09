@@ -99,6 +99,9 @@ newton = MaSkLMM.compute(bed_fn,
                         marker_sketch_size = marker_sketch_size,
                         maxiters = maxiters,
                         block_size = block_size)
+
+# Association results stored in tab-delimited file "masklmm-output"
+
 ```
 
 
