@@ -264,8 +264,8 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
 
     """
 
-    with open('masklmm-output', "w") as file:
-        file.write("SNP\tChr\tChrPos\tChiSq\tPValue\tBeta\n")
+    with open('masklmm_assocs.stats', "w") as file:
+        file.write("SNP\tChr\tChrPos\tChiSq\tP\tBeta\n")
     
     Y = np.float32((Y - np.mean(Y)).flatten())
 
