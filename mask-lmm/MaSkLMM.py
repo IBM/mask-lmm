@@ -265,7 +265,7 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
     """
 
     with open('masklmm-output', "w") as file:
-        file.write("SNP\tChr\tChrPos\tChiSq\tPValue\n")
+        file.write("SNP\tChr\tChrPos\tChiSq\tPValue\tBeta\n")
     
     Y = np.float32((Y - np.mean(Y)).flatten())
 
@@ -310,14 +310,15 @@ def get_pvals(snp_on_disk, Y, X, H_tau, sigma_e, sigma_g, block_size, sample_ske
         # compute chi-square statistics
         chi2stats = np.absolute( np.array(num_vec / den_vec).reshape((m, 1)) )
         chi2stats = np.nan_to_num(chi2stats)
-        adjchisq = 2 * np.array(chi2stats)
-        adjpvals = np.float64(stats.f.sf(adjchisq, dfn = 1, dfd = n-(c+1))[:,0])
+        pvals = np.float64(stats.f.sf(chi2stats, dfn = 1, dfd = n-(c+1))[:,0])
 
         # save p-values
         snp_ids_and_chrom_block = snp_ids_and_chrom.iloc[starting_range:ending_range + 1,:][['SNP','Chr','ChrPos2']]
-        snp_ids_and_chrom_block['Chisq'] = np.array(adjchisq).reshape(adjchisq.shape[0], 1)
-        snp_ids_and_chrom_block['PValue'] = np.array(adjpvals).reshape(adjpvals.shape[0], 1)
-        snp_ids_and_chrom_block.to_csv('masklmm-output', mode='a', sep = '\t', index=False, header=False)
+        snp_ids_and_chrom_block['Chisq'] = np.array(chi2stats).reshape(chi2stats.shape[0], 1)
+        snp_ids_and_chrom_block['P'] = np.array(pvals).reshape(pvals.shape[0], 1)
+        snp_ids_and_chrom_block['Beta'] = np.array(num_vec / den_vec).reshape((m, 1))
+        
+        snp_ids_and_chrom_block.to_csv('masklmm_assocs.stats', mode='a', sep = '\t', index=False, header=False)
         
         if i+1 != num_blocks:
             starting_range = ending_range + 1
